@@ -40,6 +40,7 @@ import org.eclipse.jgit.api.TransportCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.RefNotFoundException;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.JschConfigSessionFactory;
 import org.eclipse.jgit.transport.OpenSshConfig.Host;
 import org.eclipse.jgit.transport.SshSessionFactory;
@@ -84,6 +85,11 @@ public class JGitEnvironmentRepository extends AbstractScmEnvironmentRepository
 	private JGitEnvironmentRepository.JGitFactory gitFactory = new JGitEnvironmentRepository.JGitFactory();
 
 	private String defaultLabel = DEFAULT_LABEL;
+	
+	/**
+	 * The credentials provider to use to connect to the Git repository.
+	 */
+	private CredentialsProvider gitCredentialsProvider;
 
 	/**
 	 * Flag to indicate that the repository should force pull. If true discard any local
@@ -281,7 +287,8 @@ public class JGitEnvironmentRepository extends AbstractScmEnvironmentRepository
 		FetchCommand fetch = git.fetch().setRemote(remote);
 		setTimeout(fetch);
 		try {
-			if (hasText(getUsername())) {
+//			if (hasText(getUsername())) {
+			if (gitCredentialsProvider != null) {
 				setCredentialsProvider(fetch);
 			}
 
@@ -314,7 +321,8 @@ public class JGitEnvironmentRepository extends AbstractScmEnvironmentRepository
 		PullCommand pull = git.pull();
 		setTimeout(pull);
 		try {
-			if (hasText(getUsername())) {
+//			if (hasText(getUsername())) {
+			if (gitCredentialsProvider != null) {
 				setCredentialsProvider(pull);
 			}
 			pull.call();
@@ -374,7 +382,8 @@ public class JGitEnvironmentRepository extends AbstractScmEnvironmentRepository
 		CloneCommand clone = this.gitFactory.getCloneCommandByCloneRepository()
 				.setURI(getUri()).setDirectory(getBasedir());
 		setTimeout(clone);
-		if (hasText(getUsername())) {
+//		if (hasText(getUsername())) {
+		if (gitCredentialsProvider != null) {
 			setCredentialsProvider(clone);
 		}
 		return clone.call();
@@ -404,8 +413,11 @@ public class JGitEnvironmentRepository extends AbstractScmEnvironmentRepository
 	}
 
 	private void setCredentialsProvider(TransportCommand<?, ?> cmd) {
-		cmd.setCredentialsProvider(
-				new UsernamePasswordCredentialsProvider(getUsername(), getPassword()));
+		if (gitCredentialsProvider != null) {
+			cmd.setCredentialsProvider(gitCredentialsProvider);
+		}
+//		cmd.setCredentialsProvider(
+//				new UsernamePasswordCredentialsProvider(getUsername(), getPassword()));
 	}
 
 	private void setTimeout(TransportCommand<?, ?> pull) {
@@ -470,5 +482,19 @@ public class JGitEnvironmentRepository extends AbstractScmEnvironmentRepository
 			CloneCommand command = Git.cloneRepository();
 			return command;
 		}
+	}
+
+	/**
+	 * @return the gitCredentialsProvider
+	 */
+	public CredentialsProvider getGitCredentialsProvider() {
+		return gitCredentialsProvider;
+	}
+
+	/**
+	 * @param gitCredentialsProvider the gitCredentialsProvider to set
+	 */
+	public void setGitCredentialsProvider(CredentialsProvider gitCredentialsProvider) {
+		this.gitCredentialsProvider = gitCredentialsProvider;
 	}
 }
